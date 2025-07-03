@@ -4,6 +4,14 @@ from torchvision.models import resnet18, ResNet18_Weights
 from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
+
+# add current file directory to sys.path
+import sys
+import os
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.append(current_dir)
+
 from .utils import get_image_net_single_image, get_image_net_transform
 
 
