@@ -49,6 +49,12 @@ print("✅ Heatmap computed.")
 input_np = input_image # Keep as PIL image for display
 heatmap_np = heatmap.squeeze().cpu().detach().numpy() # Remove batch dim and convert
 print("🔄 Converted heatmap tensor to numpy array.")
+# do the normalization
+heatmap_np = np.maximum(heatmap_np, 0)  # Apply ReLU
+heatmap_np /= np.max(heatmap_np)  # Normalize to [0, 1] range
+# then to [0, 255] range
+heatmap_np = (heatmap_np * 255).astype(np.uint8)  #
+print("✅ Heatmap normalized.")
 
 # Overlay heatmap on the image
 # Resize the heatmap to match the image dimensions if not already done in forward
