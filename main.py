@@ -67,7 +67,7 @@ heatmap_np = (heatmap_np * 255).astype(np.uint8)
 print("✅ Heatmap converted to uint8.")
 # Remove the batch dimension for visualization
 heatmap_np = np.squeeze(heatmap_np)
-\
+
 # Use matplotlib to visualize
 print("📊 Generating visualization...")
 plt.figure(figsize=(10, 5))
