@@ -37,7 +37,7 @@ heatmap = grad_cam(input_batch, class_idx=None) # heatmap shape: [1, H_orig, W_o
 
 # Convert tensors to numpy arrays for visualization
 input_np = input_image # Keep as PIL image for display
-heatmap_np = heatmap.squeeze().cpu().numpy() # Remove batch dim and convert
+heatmap_np = heatmap.squeeze().cpu().detach().numpy() # Remove batch dim and convert
 
 # Overlay heatmap on the image
 # Resize the heatmap to match the image dimensions if not already done in forward
