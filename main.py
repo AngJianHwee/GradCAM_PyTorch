@@ -56,6 +56,8 @@ print("🔄 Converted heatmap tensor to numpy array.")
 
 # need to resize, update all
 print("📏 Resizing heatmap for overlay...")
+print(f"🖼️ Image dimensions (W, H): {input_np.size}")
+print(f"🔥 Heatmap shape (H, W): {heatmap_np.shape}")
 heatmap_np_resized = np.resize(heatmap_np, (input_np.size[1], input_np.size[0]))  # Resize to original image size
 print("✅ Heatmap resized.")
 
