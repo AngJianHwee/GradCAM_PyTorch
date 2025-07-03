@@ -57,3 +57,7 @@ plt.imshow(heatmap_np, cmap='jet', alpha=0.5)
 plt.title(f"Grad-CAM ({target_layer_name})")
 plt.axis('off')
 plt.show()
+
+# save
+plt.savefig('grad_cam_output.png', bbox_inches='tight', dpi=300)
+print("Grad-CAM output saved as 'grad_cam_output.png'.")
