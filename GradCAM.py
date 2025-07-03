@@ -19,12 +19,12 @@ class GRADCAM:
 
     def hook_layers(self):
         # Define the forward hook function
-        def forward_hook(module, input, output):
+        def forward_hook(_module, _input, output):
             # The output of the module is the activation map Ak (or batch of Ak's)
             self.activations.append(output)
 
         # Define the backward hook function
-        def backward_hook(module, grad_input, grad_output):
+        def backward_hook(_module, _grad_input, grad_output):
             # grad_output[0] contains the gradient of the loss/target score 
             # with respect to the output of the module. This is ∂yc / ∂Ak.
             self.gradients.append(grad_output[0])
