@@ -8,13 +8,6 @@ import torch # Added for denormalization
 
 from utils import get_image_net_single_image, get_image_net_transform
 
-def denormalize_image(tensor, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):
-    """Denormalizes a tensor image and converts it to a NumPy array."""
-    mean = torch.tensor(mean).view(1, 3, 1, 1)
-    std = torch.tensor(std).view(1, 3, 1, 1)
-    denormalized_tensor = tensor * std + mean
-    # Clamp values to [0, 1] and convert to HWC format for matplotlib
-    return denormalized_tensor.squeeze(0).permute(1, 2, 0).cpu().numpy().clip(0, 1)
 
 print("🚀 Starting Grad-CAM visualization script...")
 
@@ -40,22 +33,12 @@ input_image = get_image_net_single_image()
 if input_image is None:
     print("❌ Failed to load input image. Exiting.")
     exit()
-input_image_tensor = get_image_net_transform()(input_image)
-print("✅ Image loaded and preprocessed.")
-
-# Add a batch dimension
-input_batch = input_image_tensor.unsqueeze(0)  # Shape: [1, C, H, W]
-print("➕ Added batch dimension to input tensor.")
-
-# Ensure the input tensor requires gradients
-# input_batch.requires_grad_(True)
-
-# Compute the Grad-CAM heatmap
+# Compute the Grad-CAM heatmap and get the preprocessed image tensor
 # You can specify class_idx=... or leave it as None to use the top prediction
 # For example, to get the heatmap for 'tiger cat' (ImageNet class 292): class_idx=292
-print("🔥 Computing Grad-CAM heatmap...")
-heatmap = grad_cam(input_batch, class_idx=None) # heatmap shape: [1, H_orig, W_orig]
-print("✅ Heatmap computed.")
+print("🔥 Computing Grad-CAM heatmap and retrieving preprocessed image...")
+heatmap, pre_processed_image_tensor = grad_cam(get_image_net_transform()(input_image).unsqueeze(0), class_idx=None)
+print("✅ Heatmap and preprocessed image retrieved.")
 
 
 # resize the heatmap to match the input image size manually
@@ -71,8 +54,8 @@ heatmap = torchvision.transforms.functional.resize(
 print(f"✅ Heatmap resized to: {target_heatmap_size}.")
 
 # Convert tensors to numpy arrays for visualization
-pre_processed_image = denormalize_image(input_image_tensor.unsqueeze(0)) # Denormalize the input tensor for display
-heatmap_np = heatmap.cpu().detach().numpy() # Heatmap is already [B, H_orig, W_orig] and normalized [0,1]
+pre_processed_image = denormalize_image(pre_processed_image_tensor) # Denormalize the preprocessed tensor for display
+heatmap_np = heatmap.cpu().detach().numpy() # Heatmap is already [B, 1, H, W]
 print("🔄 Converted heatmap tensor to numpy array.")
 # Convert to [0, 255] range for visualization
 heatmap_np = (heatmap_np * 255).astype(np.uint8)

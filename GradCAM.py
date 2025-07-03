@@ -12,34 +12,54 @@ class GRADCAM:
         # These lists will be cleared before each forward pass
         self.gradients = []
         self.activations = []
+        self.preprocessed_images = []
 
         # Register hooks to capture gradients flowing back through and 
         # activations flowing forward from the target layer.
         self.hook_layers()
 
     def hook_layers(self):
-        # Define the forward hook function
-        def forward_hook(_module, _input, output):
+        # Define the forward hook function for the target layer
+        def target_forward_hook(_module, _input, output):
             # The output of the module is the activation map Ak (or batch of Ak's)
             self.activations.append(output)
 
-        # Define the backward hook function
-        def backward_hook(_module, _grad_input, grad_output):
-            # grad_output[0] contains the gradient of the loss/target score 
+        # Define the backward hook function for the target layer
+        def target_backward_hook(_module, _grad_input, grad_output):
+            # grad_output[0] contains the gradient of the loss/target score
             # with respect to the output of the module. This is ∂yc / ∂Ak.
             self.gradients.append(grad_output[0])
 
+        # Define a forward hook function for the input layer
+        def input_forward_hook(_module, input_tuple, _output):
+            # input_tuple is a tuple of tensors passed to the module.
+            # For most single-input layers, it will be (input_tensor,).
+            # We append the first tensor in the tuple.
+            if input_tuple:
+                self.preprocessed_images.append(input_tuple[0])
+
         # Find the target layer by its name and register the hooks
-        # We assume target_layer is a string representing the layer name 
-        # in the model's named_modules dictionary.
         try:
             target_module = dict(self.model.named_modules())[self.target_layer]
         except KeyError:
             raise AttributeError(f"Target layer '{self.target_layer}' not found in model.")
 
-        # Register the hooks
-        target_module.register_forward_hook(forward_hook)
-        target_module.register_backward_hook(backward_hook)
+        # Register the hooks on the target layer
+        target_module.register_forward_hook(target_forward_hook)
+        target_module.register_backward_hook(target_backward_hook)
+
+        # Find the first layer of the model and register the input hook
+        try:
+            # Get the first named module that is a direct child (not a submodule of a submodule)
+            # This module will receive the initial input tensor.
+            first_module_name, first_module = next(iter(self.model.named_children()))
+            print(f"Hooking input to the first layer: {first_module_name} ({type(first_module).__name__})")
+            first_module.register_forward_hook(input_forward_hook)
+        except StopIteration:
+            print("Warning: Model has no children modules. Cannot hook input.")
+        except Exception as e:
+             print(f"Warning: Could not hook input layer: {e}")
+
 
     def forward(self, input, class_idx=None):
         """
@@ -65,11 +85,13 @@ class GRADCAM:
         # Clear lists from previous computations
         self.gradients = []
         self.activations = []
+        self.preprocessed_images = []
 
         # --- Step 1: Forward pass ---
         # Run the forward pass through the model. This calculates all intermediate
         # activations and the final output scores.
         # The forward hook will capture the activations Ak of the target layer.
+        # The input hook will capture the preprocessed input image.
         output = self.model(input)
 
         # Get the predicted class if class_idx is not specified.
@@ -111,19 +133,19 @@ class GRADCAM:
         # Retrieve the stored gradients ∂yc / ∂Ak. The last item is the most recent.
         # gradients shape: [B, C, H, W] (where C is number of channels in target layer)
         gradients = self.gradients[-1]
-        print(f"Gradients shape: {gradients.shape}")  # Debugging line to check gradients shape
-        
+        # print(f"Gradients shape: {gradients.shape}")  # Debugging line to check gradients shape
+
         # Global average pooling of the gradients over the width and height dimensions.
         # This averages the gradients for each feature map k across all spatial locations.
         # The result is a tensor of shape [B, C], where each element is αc_k for a specific batch item and feature map k.
         # We use keepdim=True to maintain dimensions for easier multiplication later (will be [B, C, 1, 1]).
         weights = torch.mean(gradients, dim=(2, 3), keepdim=True) # Shape [B, C, 1, 1]
-        print(f"Weights shape: {weights.shape}")  # Debugging line to check weights shape
+        # print(f"Weights shape: {weights.shape}")  # Debugging line to check weights shape
 
         # Retrieve the stored activations Ak. The last item is the most recent.
         # activations shape: [B, C, H, W]
         activations = self.activations[-1]
-        print(f"Activations shape: {activations.shape}")  # Debugging line to check activations shape
+        # print(f"Activations shape: {activations.shape}")  # Debugging line to check activations shape
 
         # --- Step 4: Compute the weighted combination and apply ReLU (Equation 2) ---
         # Perform a weighted combination of the activation maps Ak using the weights αc_k.
@@ -132,21 +154,26 @@ class GRADCAM:
         # Then, sum along the channel dimension (dim=1) to get the final linear combination.
         # The result is a tensor of shape [B, 1, H, W].
         cam = torch.sum(weights * activations, dim=1, keepdim=True) # Shape [B, 1, H, W]
-        print(f"CAM shape before ReLU: {cam.shape}")  # Debugging line to check CAM shape before ReLU
+        # print(f"CAM shape before ReLU: {cam.shape}")  # Debugging line to check CAM shape before ReLU
 
         # Apply the ReLU function. This ensures we only keep feature regions that
         # positively contribute to the target class score.
         # Negative values are set to zero, as they either suppress the target class
         # or activate for other classes.
         heatmap = F.relu(cam) # Shape [B, 1, H, W]
-        print(f"Heatmap shape after ReLU: {heatmap.shape}")
+        # print(f"Heatmap shape after ReLU: {heatmap.shape}")
+
+        # Retrieve the preprocessed image(s) captured by the input hook.
+        # Assuming the input hook captures the main input tensor.
+        # self.preprocessed_images is a list, take the first element.
+        preprocessed_image = self.preprocessed_images[-1] if self.preprocessed_images else None
 
         # # --- Optional: Resize heatmap to original input size ---
         # # The heatmap is typically the size of the target convolutional layer's output.
         # # For visualization, it's usually resized to the original image dimensions.
         # # Use bilinear interpolation for smoothing.
         # original_h, original_w = input.size(2), input.size(3)
-        # heatmap_resized = F.interpolate(heatmap, size=(original_h, original_w), 
+        # heatmap_resized = F.interpolate(heatmap, size=(original_h, original_w),
         #                                 mode='bilinear', align_corners=False) # Shape [B, 1, H_orig, W_orig]
 
         # # Normalize the heatmap to values between 0 and 1 for visualization purposes.
@@ -158,7 +185,8 @@ class GRADCAM:
         # # Squeeze the channel dimension if it's 1, common for heatmaps
         # heatmap_final = heatmap_normalized.squeeze(1) # Shape [B, H_orig, W_orig]
 
-        return heatmap
+        # Return both the heatmap and the preprocessed input image
+        return heatmap, preprocessed_image
 
     def __call__(self, input, class_idx=None):
         return self.forward(input, class_idx)
