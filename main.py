@@ -71,7 +71,7 @@ heatmap = torchvision.transforms.functional.resize(
 print(f"✅ Heatmap resized to: {target_heatmap_size}.")
 
 # Convert tensors to numpy arrays for visualization
-input_np = denormalize_image(input_image_tensor.unsqueeze(0)) # Denormalize the input tensor for display
+pre_processed_image = denormalize_image(input_image_tensor.unsqueeze(0)) # Denormalize the input tensor for display
 heatmap_np = heatmap.cpu().detach().numpy() # Heatmap is already [B, H_orig, W_orig] and normalized [0,1]
 print("🔄 Converted heatmap tensor to numpy array.")
 # Convert to [0, 255] range for visualization
@@ -84,12 +84,12 @@ heatmap_np = np.squeeze(heatmap_np)
 print("📊 Generating visualization...")
 plt.figure(figsize=(10, 5))
 plt.subplot(1, 2, 1)
-plt.imshow(input_np)
-plt.title("Original Image")
+plt.imshow(pre_processed_image)
+plt.title("Pre-processed Image")
 plt.axis('off')
 
 plt.subplot(1, 2, 2)
-plt.imshow(input_np)
+plt.imshow(pre_processed_image)
 # Apply a colormap (like 'jet') to the heatmap and overlay it
 # Use the resized heatmap for overlay
 plt.imshow(heatmap_np, cmap='jet', alpha=0.5)
