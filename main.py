@@ -53,8 +53,15 @@ heatmap = torchvision.transforms.functional.resize(
 )
 print(f"✅ Heatmap resized to: {target_heatmap_size}.")
 
+# Denormalize the image tensor (assuming ImageNet normalization)
+# These values should match the normalization used in get_image_net_transform
+mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
+std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
+denormalized_image_tensor = pre_processed_image_tensor * std + mean
+
 # Convert tensors to numpy arrays for visualization
-pre_processed_image = pre_processed_image_tensor.cpu().detach().numpy()
+# Convert denormalized image tensor to numpy, squeeze batch, and transpose dimensions for matplotlib
+pre_processed_image = denormalized_image_tensor.squeeze(0).permute(1, 2, 0).cpu().detach().numpy()
 heatmap_np = heatmap.cpu().detach().numpy() # Heatmap is already [B, 1, H, W]
 print("🔄 Converted heatmap tensor to numpy array.")
 # Convert to [0, 255] range for visualization
@@ -88,3 +95,5 @@ print("✅ Grad-CAM output saved as 'grad_cam_output.png'.")
 print("👀 Displaying visualization...")
 plt.show()
 print("✅ Script finished.")
+
+
