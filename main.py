@@ -17,7 +17,7 @@ print("✅ Model loaded successfully.")
 
 # Choose the target layer (e.g., the last convolutional layer in the backbone)
 # For ResNet, this is often the last layer in layer4.
-target_layer_name = 'layer4'
+target_layer_name = 'layer3'
 print(f"🎯 Target layer set to: '{target_layer_name}'")
 
 # Create a Grad-CAM object
