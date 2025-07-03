@@ -158,8 +158,24 @@ class GRADCAM:
         # # Squeeze the channel dimension if it's 1, common for heatmaps
         # heatmap_final = heatmap_normalized.squeeze(1) # Shape [B, H_orig, W_orig]
 
-        return heatmap
+        # --- Optional: Resize heatmap to original input size ---
+        # The heatmap is typically the size of the target convolutional layer's output.
+        # For visualization, it's usually resized to the original image dimensions.
+        # Use bilinear interpolation for smoothing.
+        original_h, original_w = input.size(2), input.size(3)
+        heatmap_resized = F.interpolate(heatmap, size=(original_h, original_w), 
+                                        mode='bilinear', align_corners=False) # Shape [B, 1, H_orig, W_orig]
+
+        # Normalize the heatmap to values between 0 and 1 for visualization purposes.
+        # This makes it easier to overlay on the image.
+        # Avoid division by zero if the heatmap is all zeros.
+        heatmap_max = heatmap_resized.max(dim=-1, keepdim=True)[0].max(dim=-2, keepdim=True)[0]
+        heatmap_normalized = heatmap_resized / (heatmap_max + 1e-8) # Shape [B, 1, H_orig, W_orig]
+
+        # Squeeze the channel dimension if it's 1, common for heatmaps
+        heatmap_final = heatmap_normalized.squeeze(1) # Shape [B, H_orig, W_orig]
+
+        return heatmap_final # Return the processed heatmap
 
     def __call__(self, input, class_idx=None):
         return self.forward(input, class_idx)
-

@@ -47,25 +47,11 @@ print("✅ Heatmap computed.")
 
 # Convert tensors to numpy arrays for visualization
 input_np = input_image # Keep as PIL image for display
-heatmap_np = heatmap.squeeze().cpu().detach().numpy() # Remove batch dim and convert
+heatmap_np = heatmap.cpu().detach().numpy() # Heatmap is already [B, H_orig, W_orig] and normalized [0,1]
 print("🔄 Converted heatmap tensor to numpy array.")
-# do the normalization
-heatmap_np = np.maximum(heatmap_np, 0)  # Apply ReLU
-heatmap_np /= np.max(heatmap_np)  # Normalize to [0, 1] range
-# then to [0, 255] range
-heatmap_np = (heatmap_np * 255).astype(np.uint8)  #
-print("✅ Heatmap normalized.")
-
-# Overlay heatmap on the image
-# Resize the heatmap to match the image dimensions if not already done in forward
-# (The forward method does this resizing and returns [B, H_orig, W_orig])
-
-# need to resize, update all
-print("📏 Resizing heatmap for overlay...")
-print(f"🖼️ Image dimensions (W, H): {input_np.size}")
-print(f"🔥 Heatmap shape (H, W): {heatmap_np.shape}")
-heatmap_np_resized = np.resize(heatmap_np, (input_np.size[1], input_np.size[0]))  # Resize to original image size
-print("✅ Heatmap resized.")
+# Convert to [0, 255] range for visualization
+heatmap_np = (heatmap_np * 255).astype(np.uint8)
+print("✅ Heatmap converted to uint8.")
 
 # Use matplotlib to visualize
 print("📊 Generating visualization...")
@@ -79,7 +65,7 @@ plt.subplot(1, 2, 2)
 plt.imshow(input_np)
 # Apply a colormap (like 'jet') to the heatmap and overlay it
 # Use the resized heatmap for overlay
-plt.imshow(heatmap_np_resized, cmap='jet', alpha=0.5)
+plt.imshow(heatmap_np, cmap='jet', alpha=0.5)
 plt.title(f"Grad-CAM ({target_layer_name})")
 plt.axis('off')
 print("✅ Visualization generated.")
