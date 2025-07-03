@@ -43,6 +43,8 @@ heatmap_np = heatmap.squeeze().cpu().detach().numpy() # Remove batch dim and con
 # Resize the heatmap to match the image dimensions if not already done in forward
 # (The forward method does this resizing and returns [B, H_orig, W_orig])
 
+# need to resize, update all
+heatmap_np_resized = np.resize(heatmap_np, (input_np.size[1], input_np.size[0]))  # Resize to original image size
 # Use matplotlib to visualize
 plt.figure(figsize=(10, 5))
 plt.subplot(1, 2, 1)
@@ -53,7 +55,8 @@ plt.axis('off')
 plt.subplot(1, 2, 2)
 plt.imshow(input_np)
 # Apply a colormap (like 'jet') to the heatmap and overlay it
-plt.imshow(heatmap_np, cmap='jet', alpha=0.5) 
+# Use the resized heatmap for overlay
+plt.imshow(heatmap_np_resized, cmap='jet', alpha=0.5)
 plt.title(f"Grad-CAM ({target_layer_name})")
 plt.axis('off')
 
