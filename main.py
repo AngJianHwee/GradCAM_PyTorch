@@ -20,45 +20,40 @@ target_layer_name = 'layer4'
 grad_cam = GRADCAM(model, target_layer_name)
 
 # Load an example image and preprocess it
-# You would replace 'path/to/your/image.jpg' with a real image path
-try:
-    input_image = get_image_net_single_image()
-    input_image_tensor = get_image_net_transform()(input_image)
 
-    # Add a batch dimension
-    input_batch = input_image_tensor.unsqueeze(0)  # Shape: [1, C, H, W]
+input_image = get_image_net_single_image()
+input_image_tensor = get_image_net_transform()(input_image)
 
-    # Ensure the input tensor requires gradients
-    input_batch.requires_grad_(True)
+# Add a batch dimension
+input_batch = input_image_tensor.unsqueeze(0)  # Shape: [1, C, H, W]
 
-    # Compute the Grad-CAM heatmap
-    # You can specify class_idx=... or leave it as None to use the top prediction
-    # For example, to get the heatmap for 'tiger cat' (ImageNet class 292): class_idx=292
-    heatmap = grad_cam(input_batch, class_idx=None) # heatmap shape: [1, H_orig, W_orig]
+# Ensure the input tensor requires gradients
+# input_batch.requires_grad_(True)
 
-    # Convert tensors to numpy arrays for visualization
-    input_np = input_image # Keep as PIL image for display
-    heatmap_np = heatmap.squeeze().cpu().numpy() # Remove batch dim and convert
+# Compute the Grad-CAM heatmap
+# You can specify class_idx=... or leave it as None to use the top prediction
+# For example, to get the heatmap for 'tiger cat' (ImageNet class 292): class_idx=292
+heatmap = grad_cam(input_batch, class_idx=None) # heatmap shape: [1, H_orig, W_orig]
 
-    # Overlay heatmap on the image
-    # Resize the heatmap to match the image dimensions if not already done in forward
-    # (The forward method does this resizing and returns [B, H_orig, W_orig])
+# Convert tensors to numpy arrays for visualization
+input_np = input_image # Keep as PIL image for display
+heatmap_np = heatmap.squeeze().cpu().numpy() # Remove batch dim and convert
 
-    # Use matplotlib to visualize
-    plt.figure(figsize=(10, 5))
-    plt.subplot(1, 2, 1)
-    plt.imshow(input_np)
-    plt.title("Original Image")
-    plt.axis('off')
+# Overlay heatmap on the image
+# Resize the heatmap to match the image dimensions if not already done in forward
+# (The forward method does this resizing and returns [B, H_orig, W_orig])
 
-    plt.subplot(1, 2, 2)
-    plt.imshow(input_np)
-    # Apply a colormap (like 'jet') to the heatmap and overlay it
-    plt.imshow(heatmap_np, cmap='jet', alpha=0.5) 
-    plt.title(f"Grad-CAM ({target_layer_name})")
-    plt.axis('off')
-    plt.show()
+# Use matplotlib to visualize
+plt.figure(figsize=(10, 5))
+plt.subplot(1, 2, 1)
+plt.imshow(input_np)
+plt.title("Original Image")
+plt.axis('off')
 
-except Exception as e:
-    print(f"An error occurred: {e}")
-    # Handle specific exceptions if needed, e.g., file not found, model loading issues, etc.
+plt.subplot(1, 2, 2)
+plt.imshow(input_np)
+# Apply a colormap (like 'jet') to the heatmap and overlay it
+plt.imshow(heatmap_np, cmap='jet', alpha=0.5) 
+plt.title(f"Grad-CAM ({target_layer_name})")
+plt.axis('off')
+plt.show()
