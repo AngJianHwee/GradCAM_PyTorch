@@ -111,16 +111,19 @@ class GRADCAM:
         # Retrieve the stored gradients ∂yc / ∂Ak. The last item is the most recent.
         # gradients shape: [B, C, H, W] (where C is number of channels in target layer)
         gradients = self.gradients[-1]
+        print(f"Gradients shape: {gradients.shape}")  # Debugging line to check gradients shape
         
         # Global average pooling of the gradients over the width and height dimensions.
         # This averages the gradients for each feature map k across all spatial locations.
         # The result is a tensor of shape [B, C], where each element is αc_k for a specific batch item and feature map k.
         # We use keepdim=True to maintain dimensions for easier multiplication later (will be [B, C, 1, 1]).
         weights = torch.mean(gradients, dim=(2, 3), keepdim=True) # Shape [B, C, 1, 1]
+        print(f"Weights shape: {weights.shape}")  # Debugging line to check weights shape
 
         # Retrieve the stored activations Ak. The last item is the most recent.
         # activations shape: [B, C, H, W]
         activations = self.activations[-1]
+        print(f"Activations shape: {activations.shape}")  # Debugging line to check activations shape
 
         # --- Step 4: Compute the weighted combination and apply ReLU (Equation 2) ---
         # Perform a weighted combination of the activation maps Ak using the weights αc_k.
@@ -129,12 +132,14 @@ class GRADCAM:
         # Then, sum along the channel dimension (dim=1) to get the final linear combination.
         # The result is a tensor of shape [B, 1, H, W].
         cam = torch.sum(weights * activations, dim=1, keepdim=True) # Shape [B, 1, H, W]
+        print(f"CAM shape before ReLU: {cam.shape}")  # Debugging line to check CAM shape before ReLU
 
         # Apply the ReLU function. This ensures we only keep feature regions that
         # positively contribute to the target class score.
         # Negative values are set to zero, as they either suppress the target class
         # or activate for other classes.
         heatmap = F.relu(cam) # Shape [B, 1, H, W]
+        print(f"Heatmap shape after ReLU: {heatmap.shape}")
 
         # # --- Optional: Resize heatmap to original input size ---
         # # The heatmap is typically the size of the target convolutional layer's output.
