@@ -46,10 +46,17 @@ heatmap = grad_cam(input_batch, class_idx=None) # heatmap shape: [1, H_orig, W_o
 print("✅ Heatmap computed.")
 
 
-# resize the heatmap to match the input image size
+# resize the heatmap to match the input image size manually
 print("🔄 Resizing heatmap to match input image size...")
-heatmap = grad_cam.resize_heatmap(heatmap, input_image.size)  # Resize heatmap to original image size
-print("✅ Heatmap resized.")
+# Get the original size of the input image
+input_size = input_image.size  # (width, height)
+# Resize the heatmap to match the input image size
+heatmap = torchvision.transforms.functional.resize(
+    heatmap,
+    size=input_size,  # (height, width)
+    interpolation=torchvision.transforms.InterpolationMode.BILINEAR
+)
+print(f"✅ Heatmap resized to: {input_size}.")
 
 # Convert tensors to numpy arrays for visualization
 input_np = input_image # Keep as PIL image for display
