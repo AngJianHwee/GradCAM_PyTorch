@@ -54,7 +54,7 @@ heatmap = torchvision.transforms.functional.resize(
 print(f"✅ Heatmap resized to: {target_heatmap_size}.")
 
 # Convert tensors to numpy arrays for visualization
-pre_processed_image = pre_processed_image_tensor.cpu().detach().numpy().transpose(1, 2, 0) # Convert to [H, W, C]
+pre_processed_image = denormalize_image(pre_processed_image_tensor) # Denormalize the preprocessed tensor for display
 heatmap_np = heatmap.cpu().detach().numpy() # Heatmap is already [B, 1, H, W]
 print("🔄 Converted heatmap tensor to numpy array.")
 # Convert to [0, 255] range for visualization
