@@ -45,6 +45,12 @@ print("🔥 Computing Grad-CAM heatmap...")
 heatmap = grad_cam(input_batch, class_idx=None) # heatmap shape: [1, H_orig, W_orig]
 print("✅ Heatmap computed.")
 
+
+# resize the heatmap to match the input image size
+print("🔄 Resizing heatmap to match input image size...")
+heatmap = grad_cam.resize_heatmap(heatmap, input_image.size)  # Resize heatmap to original image size
+print("✅ Heatmap resized.")
+
 # Convert tensors to numpy arrays for visualization
 input_np = input_image # Keep as PIL image for display
 heatmap_np = heatmap.cpu().detach().numpy() # Heatmap is already [B, H_orig, W_orig] and normalized [0,1]
@@ -54,7 +60,7 @@ heatmap_np = (heatmap_np * 255).astype(np.uint8)
 print("✅ Heatmap converted to uint8.")
 # Remove the batch dimension for visualization
 heatmap_np = np.squeeze(heatmap_np)
-
+\
 # Use matplotlib to visualize
 print("📊 Generating visualization...")
 plt.figure(figsize=(10, 5))
