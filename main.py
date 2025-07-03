@@ -4,8 +4,17 @@ from torchvision.models import resnet18, ResNet18_Weights
 from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
+import torch # Added for denormalization
 
 from utils import get_image_net_single_image, get_image_net_transform
+
+def denormalize_image(tensor, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):
+    """Denormalizes a tensor image and converts it to a NumPy array."""
+    mean = torch.tensor(mean).view(1, 3, 1, 1)
+    std = torch.tensor(std).view(1, 3, 1, 1)
+    denormalized_tensor = tensor * std + mean
+    # Clamp values to [0, 1] and convert to HWC format for matplotlib
+    return denormalized_tensor.squeeze(0).permute(1, 2, 0).cpu().numpy().clip(0, 1)
 
 print("🚀 Starting Grad-CAM visualization script...")
 
@@ -28,6 +37,9 @@ print("✅ Grad-CAM object created.")
 # Load an example image and preprocess it
 print("🖼️ Loading and preprocessing input image...")
 input_image = get_image_net_single_image()
+if input_image is None:
+    print("❌ Failed to load input image. Exiting.")
+    exit()
 input_image_tensor = get_image_net_transform()(input_image)
 print("✅ Image loaded and preprocessed.")
 
@@ -49,17 +61,17 @@ print("✅ Heatmap computed.")
 # resize the heatmap to match the input image size manually
 print("🔄 Resizing heatmap to match input image size...")
 # Get the original size of the input image
-input_size = input_image.size  # (width, height)
-# Resize the heatmap to match the input image size
+# input_image.size returns (width, height), but resize expects (height, width)
+target_heatmap_size = (input_image.size[1], input_image.size[0]) 
 heatmap = torchvision.transforms.functional.resize(
     heatmap,
-    size=input_size,  # (height, width)
+    size=target_heatmap_size,
     interpolation=torchvision.transforms.InterpolationMode.BILINEAR
 )
-print(f"✅ Heatmap resized to: {input_size}.")
+print(f"✅ Heatmap resized to: {target_heatmap_size}.")
 
 # Convert tensors to numpy arrays for visualization
-input_np = input_image # Keep as PIL image for display
+input_np = denormalize_image(input_image_tensor.unsqueeze(0)) # Denormalize the input tensor for display
 heatmap_np = heatmap.cpu().detach().numpy() # Heatmap is already [B, H_orig, W_orig] and normalized [0,1]
 print("🔄 Converted heatmap tensor to numpy array.")
 # Convert to [0, 255] range for visualization
